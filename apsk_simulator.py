@@ -258,16 +258,21 @@ class Experiment:
     symbols_array = []
 
     # Signal to Noise Ratio
-    snr = 0
+    snr = None
 
     # Symbol Error Rate
-    ser = 0
+    ser = None
 
     # Bit Error Rate
-    ber = 0
+    ber = None
 
     # Experiment constructor
     def __init__(self, des_snr, b, ring_symbols_number, symbols_number):
+        
+        # Initialize variables
+        self.snr = 0
+        self.ser = 0
+        self.ber = 0
 
         # Ask for desired SNR and b parameter to calculate variance and outer ring radius (inner ring is fixed to 1)
         #des_snr = float(input("Enter desired signal to noise ratio (SNR):"))
@@ -314,11 +319,10 @@ class Experiment:
         del self.constellation
         self.noise = None
         self.symbols_number = None
-        self.symbols_array = []
-        self.snr = 0
-        self.ser = 0
-        self.ber = 0
-        gc.collect()
+        self.snr = None
+        self.ser = None
+        self.ber = None
+        #gc.collect()
 
 
     # Calculate Symbol Error Rate (SER) and Bit Error Rate (BER)
@@ -344,7 +348,7 @@ def plotter(snr_start, b, ring_symbols_number, symbols_number, color):
             # Export results (ber, ser, snr)
             csv_writer.writerow([experiment.ber, experiment.ser, experiment.snr])
             del experiment
-            gc.collect()
+            #gc.collect()
 
 # Main function
 def main():
