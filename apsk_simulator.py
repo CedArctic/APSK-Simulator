@@ -1,6 +1,6 @@
 #
 #   APSK Simulator
-#   Author: CedArctic, Eva
+#   Author: CedArctic, EvaSArv
 #   Usage: Simulates a dual ring APSK
 #
 
@@ -222,4 +222,159 @@ class Constellation:
         plt.gcf().gca().add_artist(circle1)
         plt.gcf().gca().add_artist(circle2)
         plt.show()
+# AWGN (Additive White Gaussian Noise) class
+class Noise:
 
+    # Noise Variance and Mean - variance determines noise power
+    var = None
+    mean = None
+
+    # Noise power
+    power = None
+
+    # Noise constructor
+    def __init__(self, var, mean = 0):
+        self.var = var
+        self.mean = mean
+        self.power = 2 * self.var
+
+    # Sample Generator - generates an awgn sample or an array of them
+    def generate_awgn(self, samples_number = 1):
+        return numpy.random.normal(self.mean, math.sqrt(self.var), size=samples_number)
+
+
+class Experiment:
+
+    # Constellation for the experiment
+    constellation = None
+
+    # Noise for the experiment
+    noise = None
+
+    # Experiment symbol array size
+    symbols_number = None
+
+    # Symbols array for this experiment
+    symbols_array = []
+
+    # Signal to Noise Ratio
+    snr = 0
+
+    # Symbol Error Rate
+    ser = 0
+
+    # Bit Error Rate
+    ber = 0
+
+    # Experiment constructor
+    def __init__(self, des_snr, b, ring_symbols_number, symbols_number):
+
+        # Ask for desired SNR and b parameter to calculate variance and outer ring radius (inner ring is fixed to 1)
+        #des_snr = float(input("Enter desired signal to noise ratio (SNR):"))
+
+        # Outer ring radius = 1 / desired b
+        #des_ro = 1 / float(input("Enter desired inner to outer ring ratio (b):"))
+        des_ro = 1 / b
+
+        # Get symbols per ring
+        #ring_symbols_number = int(input("Enter number of symbols per ring:"))
+
+        # Create constellation for experiment
+        self.constellation = Constellation(ring_symbols_number, 1, des_ro)
+
+        # Calculate variance required to achieve desired SNR
+        des_var = (1 + des_ro ** 2) / (4 * self.constellation.symbol_length * (10 ** (des_snr / 10)))
+        print("Variance is: ", des_var)
+
+        # Create noise for experiment
+        self.noise = Noise(des_var, 0)
+
+        # Calculate SNR
+        self.snr = 10 * math.log10(self.constellation.symbol_power / (self.constellation.symbol_length *  self.noise.power))
+
+        # Get number of symbols for experiment
+        self.symbols_number = symbols_number
+
+        # Plot constellation
+        #self.constellation.plot_constellation()
+
+        # Generate the symbols array
+        self.symbols_array = [None] * symbols_number
+        for i in range(0, self.symbols_number):
+            self.symbols_array[i] = (Symbol(self.constellation.symbol_length, self.constellation, self.noise))
+
+        # Calculate Symbol Error Rate (SER) and Bit Error Rate (BER)
+        self.serNber()
+
+        print("Length of symbols array is ", len(self.symbols_array))
+
+    # Experiment destructor
+    def __del__(self):
+        self.constellation = None
+        del self.constellation
+        self.noise = None
+        self.symbols_number = None
+        self.symbols_array = []
+        self.snr = 0
+        self.ser = 0
+        self.ber = 0
+        gc.collect()
+
+
+    # Calculate Symbol Error Rate (SER) and Bit Error Rate (BER)
+    def serNber(self):
+        for i in self.symbols_array:
+            if i.bits_check(self.constellation) != 0:
+                self.ser += 1
+                self.ber += i.bits_check(self.constellation)
+        self.ser = self.ser / self.symbols_number
+        self.ber = self.ber / (self.symbols_number * self.constellation.symbol_length)
+
+# Plots results and exports them to csv
+def plotter(snr_start, b, ring_symbols_number, symbols_number, color):
+    with open('results.csv', 'a', encoding='utf-8') as csv_file:
+        csv_writer = csv.writer(csv_file, delimiter=',')
+        csv_writer.writerow(['b = ' + str(b)])
+        for i in range(0, 10):
+            print("Plotter i is:", i)
+            experiment = Experiment(snr_start + 0.25 * i, b, ring_symbols_number, symbols_number)
+            experiment.serNber()
+            print("BER:", experiment.ber, "SER:", experiment.ser, "SNR:", experiment.snr)
+            plt.plot(snr_start + 0.25 * i, experiment.ber, color)
+            # Export results (ber, ser, snr)
+            csv_writer.writerow([experiment.ber, experiment.ser, experiment.snr])
+            del experiment
+            gc.collect()
+
+# Main function
+def main():
+    start = time.time()
+    print("Starting time:", start)
+
+    # Get number of samples for the experiments
+    symbols_number = int(input("Enter number of symbols for this experiment:"))
+
+    # Get number of symbols per ring
+    ring_symbols_number = int(input("Enter number of symbols per ring:"))
+
+    # Get pairs of b and SNR starting points for plotting
+    print("Enter inner / outer ring ratio (b) and the desired SNR from which plotting will begin")
+    b_snrStart_table=[]
+
+    for i in range(0,5):
+        print("Pair ", i)
+        b = float(input("Enter b:"))
+        snr_start = float(input("Enter SNR plot starting point:"))
+        b_snrStart_table.append([b,snr_start]);
+
+    # Run plotter
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+    for j in range(0,5):
+        plotter(b_snrStart_table[j][1], b_snrStart_table[j][0], ring_symbols_number, symbols_number, colors[j] + 'o-')
+
+
+    plt.show()
+    end = time.time()
+    print(end - start)
+# Call main to run the program
+main()
