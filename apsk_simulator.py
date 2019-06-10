@@ -4,7 +4,7 @@
 #   Usage: Simulates a dual ring APSK through an AWGN channel and calculates and plots BER and SER = f(SNR)
 #
 
-import random, csv, os, time, numpy, bitarray, math, gc, matplotlib.pyplot as plt
+import random, csv, datetime, numpy, bitarray, math, matplotlib.pyplot as plt
 from bidict import bidict
 
 
@@ -168,6 +168,7 @@ class Constellation:
             # Create Constellation Symbol
             self.symbols[i] = Constellation_Symbol(self.symbol_length, bits, original_symbol_vector, original_symbol)
 
+    # Displays the constellation
     def plot_constellation(self):
         # Plot constellation
         for i in range(0, (self.ring_symbols_number * 2)):
@@ -178,6 +179,7 @@ class Constellation:
         plt.gcf().gca().add_artist(circle1)
         plt.gcf().gca().add_artist(circle2)
         plt.show()
+        #plt.savefig('constellation_' + str(self.ring_symbols_number) + '-apsk_b-' + str(self.b) + '.png')
 
 
 # AWGN (Additive White Gaussian Noise) class
@@ -199,7 +201,7 @@ class Noise:
 class Experiment:
 
     # Experiment constructor
-    def __init__(self, des_snr, b, ring_symbols_number, symbols_number):
+    def __init__(self, des_snr, b, symbols_number, constellation):
 
         # Signal to Noise Ratio
         self.snr = 0
@@ -217,7 +219,7 @@ class Experiment:
         des_ro = 1 / self.b
 
         # Create constellation for experiment
-        self.constellation = Constellation(ring_symbols_number, 1, des_ro)
+        self.constellation = constellation
 
         # Calculate variance required to achieve desired SNR
         des_var = (1 + des_ro ** 2) / (4 * self.constellation.symbol_length * (10 ** (des_snr / 10)))
@@ -265,9 +267,11 @@ def plotter(snr_start, b, ring_symbols_number, symbols_number, color):
     with open('results.csv', 'a', encoding='utf-8') as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=',')
         csv_writer.writerow(['b = ' + str(b)])
+        # Create constellation for the following experiments
+        constellation = Constellation(ring_symbols_number, 1, (1/b))
         for i in range(0, 10):
             print("Plotter i is:", i)
-            experiment = Experiment(snr_start + 0.25 * i, b, ring_symbols_number, symbols_number)
+            experiment = Experiment(snr_start + 0.25 * i, b, symbols_number, constellation)
             experiment.serNber()
             print("BER:", experiment.ber, "SER:", experiment.ser, "SNR:", experiment.snr)
             plt.plot(snr_start + 0.25 * i, experiment.ber, color)
@@ -277,8 +281,7 @@ def plotter(snr_start, b, ring_symbols_number, symbols_number, color):
 
 # Main function
 def main():
-    start = time.time()
-    print("Starting time:", start)
+    print("Starting time:", datetime.datetime.now())
 
     # Get number of samples for the experiments
     symbols_number = int(input("Enter number of symbols for this experiment:"))
@@ -301,9 +304,21 @@ def main():
     for j in range(0, 5):
         plotter(b_snrStart_table[j][1], b_snrStart_table[j][0], ring_symbols_number, symbols_number, colors[j] + 'o-')
 
+    # Add titles, change y axis scale, and print plot
+    plt.xlabel("SNR: Eb/No dB")
+    plt.ylabel("Bit Error Rate")
+    plt.yscale('log', nonposy='clip')
     plt.show()
-    end = time.time()
-    print(end - start)
+
+    # Print constellations after clearing plot
+    for k in range(0, 5):
+        plt.clf()
+        plt.title(str(ring_symbols_number)+ "-APSK Constellation with b = " + str(b_snrStart_table[k][0]))
+        constellation = Constellation(ring_symbols_number, 1, (1/b_snrStart_table[k][0]))
+        constellation.plot_constellation()
+        plt.show()
+
+    print("End time:", datetime.datetime.now())
 
 
 # Call main to run the program
