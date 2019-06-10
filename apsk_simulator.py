@@ -4,7 +4,7 @@
 #   Usage: Simulates a dual ring APSK through an AWGN channel and calculates and plots BER and SER = f(SNR)
 #
 
-import random, csv, datetime, numpy, bitarray, math, matplotlib.pyplot as plt
+import random, csv, datetime, numpy, bitarray, math, matplotlib.pyplot as plt, matplotlib.patches as mpatches
 from bidict import bidict
 
 
@@ -267,16 +267,28 @@ def plotter(snr_start, b, ring_symbols_number, symbols_number, color):
     with open('results.csv', 'a', encoding='utf-8') as csv_file:
         csv_writer = csv.writer(csv_file, delimiter=',')
         csv_writer.writerow(['b = ' + str(b)])
+
         # Create constellation for the following experiments
         constellation = Constellation(ring_symbols_number, 1, (1/b))
+
+        # Lists for results coordinates
+        snrList=[]
+        berList=[]
+
+        # Create experiment and calculate SER and BER, then plot the points
         for i in range(0, 10):
-            print("Plotter i is:", i)
+            print("\nPlotter i is:", i)
             experiment = Experiment(snr_start + 0.25 * i, b, symbols_number, constellation)
             experiment.serNber()
             print("BER:", experiment.ber, "SER:", experiment.ser, "SNR:", experiment.snr)
-            plt.plot(snr_start + 0.25 * i, experiment.ber, color)
+            snrList.append(snr_start + 0.25 * i)
+            berList.append(experiment.ber)
+            plt.plot(snrList[i], berList[i], color)
             # Export results (ber, ser, snr)
             csv_writer.writerow([experiment.ber, experiment.ser, experiment.snr])
+
+        #Plot lines connecting the already plotted points
+        plt.plot(snrList, berList, color, linewidth=3)
 
 
 # Main function
@@ -299,12 +311,18 @@ def main():
         snr_start = float(input("Enter SNR plot starting point:"))
         b_snrStart_table.append([b, snr_start]);
 
-    # Run plotter
+    # Lists for plotting and legend creation
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+    handles=[]
+
+    # Run plotter and prepare handles for plot figure legend
     for j in range(0, 5):
         plotter(b_snrStart_table[j][1], b_snrStart_table[j][0], ring_symbols_number, symbols_number, colors[j] + 'o-')
+        handles.append(mpatches.Patch(color=colors[j], label='b = ' + str(b_snrStart_table[j][0])))
 
     # Add titles, change y axis scale, and print plot
+    plt.title(str(ring_symbols_number) + "-" + str(ring_symbols_number) + "-APSK")
+    plt.legend(handles=handles)
     plt.xlabel("SNR: Eb/No dB")
     plt.ylabel("Bit Error Rate")
     plt.yscale('log', nonposy='clip')
@@ -313,7 +331,7 @@ def main():
     # Print constellations after clearing plot
     for k in range(0, 5):
         plt.clf()
-        plt.title(str(ring_symbols_number)+ "-APSK Constellation with b = " + str(b_snrStart_table[k][0]))
+        plt.title(str(ring_symbols_number) + "-" + str(ring_symbols_number) + "-APSK Constellation with b = " + str(b_snrStart_table[k][0]))
         constellation = Constellation(ring_symbols_number, 1, (1/b_snrStart_table[k][0]))
         constellation.plot_constellation()
         plt.show()
