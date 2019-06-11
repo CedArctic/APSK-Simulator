@@ -281,9 +281,11 @@ def plotter(snr_start, b, ring_symbols_number, symbols_number, color):
             experiment = Experiment(snr_start + 0.25 * i, b, symbols_number, constellation)
             experiment.serNber()
             print("BER:", experiment.ber, "SER:", experiment.ser, "SNR:", experiment.snr)
-            snrList.append(snr_start + 0.25 * i)
-            berList.append(experiment.ber)
-            plt.plot(snrList[i], berList[i], color)
+            # Only keep the coordinates for plotting purposes if ber is not 0 since we're using the log scale for graphs
+            if experiment.ber != 0:
+                snrList.append(snr_start + 0.25 * i)
+                berList.append(experiment.ber)
+                plt.plot(snrList[-1], berList[-1], color)
             # Export results (ber, ser, snr)
             csv_writer.writerow([experiment.ber, experiment.ser, experiment.snr])
 
