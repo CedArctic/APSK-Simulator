@@ -39,4 +39,4 @@ Contains information required to generate AWGN samples to be added to each symbo
 * bidict
 
 ## Credits
-The simulator was authored by myself and [EvaSArv](https://github.com/EvaSArv/)
+The simulator was authored by [CedArctic](https://github.com/CedArctic/) and [EvaSArv](https://github.com/EvaSArv/)
